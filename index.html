@@ -1,125 +1,132 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>角色卡百宝箱</title>
+    <title>我的百宝箱 - 智能收纳</title>
+    
+    <!-- 添加 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- 添加 Inter 字体 -->
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        /* 自定义样式 */
         body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
-        #root {
-            min-height: 100vh;
+        
+        /* 滚动条隐藏 */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
         }
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            color: #666;
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
-        .spinner {
+        
+        /* 加载动画 */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
             width: 40px;
             height: 40px;
-            border: 4px solid #e5e7eb;
-            border-top-color: #4f46e5;
-            border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 20px;
         }
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
     
-    <!-- 关键：importmap 必须在 script 之前 -->
+    <!-- importmap 必须在 script 之前 -->
     <script type="importmap">
     {
         "imports": {
             "react": "https://esm.sh/react@19.2.3",
             "react-dom/client": "https://esm.sh/react-dom@19.2.3/client",
             "react-dom": "https://esm.sh/react-dom@19.2.3",
-            "lucide-react": "https://esm.sh/lucide-react@0.562.0"
+            "lucide-react": "https://esm.sh/lucide-react@0.562.0",
+            "@google/genai": "https://esm.sh/@google/genai@1.38.0"
         }
     }
     </script>
 </head>
-<body>
+<body class="bg-gray-50">
     <div id="root">
-        <div class="loading">
-            <div class="spinner"></div>
-            <div>初始化应用...</div>
+        <!-- 加载时的占位内容 -->
+        <div class="h-screen w-full flex flex-col items-center justify-center bg-gray-50">
+            <div class="loader mb-4"></div>
+            <p class="text-gray-600 font-medium">正在加载百宝箱...</p>
+            <p class="text-gray-400 text-sm mt-2">Silly Tavern 助手</p>
         </div>
     </div>
     
-    <!-- 关键：添加 crossorigin 属性 -->
-    <script type="module" crossorigin>
-        // 显示加载状态
-        console.log('开始加载应用...');
+    <!-- 主应用脚本 -->
+    <script type="module">
+        console.log('🚀 开始加载应用...');
         
-        // 动态导入主模块
-        try {
-            // 直接导入主模块
-            import('./assets/index-CCp5FB4H.js').then(() => {
-                console.log('应用模块加载成功');
-                document.getElementById('root').innerHTML = '';
-            }).catch(error => {
-                console.error('模块加载失败:', error);
-                showError('模块加载失败: ' + error.message);
+        // 动态加载主模块
+        import('./assets/index-CCp5FB4H.js')
+            .then(() => {
+                console.log('✅ 应用加载成功');
+                // 加载成功后移除加载提示
+                const root = document.getElementById('root');
+                if (root.children.length === 1 && root.children[0].className.includes('h-screen')) {
+                    root.innerHTML = '';
+                }
+            })
+            .catch(error => {
+                console.error('❌ 应用加载失败:', error);
+                
+                // 显示错误信息
+                document.getElementById('root').innerHTML = `
+                    <div class="h-screen w-full flex flex-col items-center justify-center bg-gray-50 p-6">
+                        <div class="bg-red-50 border border-red-200 rounded-xl p-6 max-w-md text-center">
+                            <div class="text-red-600 text-2xl mb-3">⚠️</div>
+                            <h3 class="text-red-800 font-bold text-lg mb-2">加载失败</h3>
+                            <p class="text-red-600 mb-4">无法加载应用程序，请检查网络连接后重试。</p>
+                            <div class="text-sm text-gray-600 mb-4">
+                                <p>错误信息: ${error.message}</p>
+                            </div>
+                            <button onclick="location.reload()" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                                重新加载
+                            </button>
+                        </div>
+                    </div>
+                `;
             });
-        } catch (error) {
-            console.error('导入错误:', error);
-            showError('导入错误: ' + error.message);
-        }
-        
-        // 显示错误
-        function showError(message) {
-            document.getElementById('root').innerHTML = `
-                <div class="loading">
-                    <div style="color: #dc2626; margin-bottom: 16px; font-size: 18px;">
-                        ❌ 加载失败
-                    </div>
-                    <div style="margin-bottom: 20px; text-align: center; max-width: 400px;">
-                        ${message}
-                    </div>
-                    <div style="margin-bottom: 20px;">
-                        <a href="./assets/index-CCp5FB4H.js" target="_blank" style="color: #4f46e5;">
-                            点击查看 JS 文件
-                        </a>
-                    </div>
-                    <button onclick="location.reload()" style="
-                        background: #4f46e5;
-                        color: white;
-                        padding: 10px 24px;
-                        border-radius: 8px;
-                        border: none;
-                        font-size: 16px;
-                        cursor: pointer;
-                    ">
-                        重新加载
-                    </button>
-                </div>
-            `;
-        }
         
         // 超时处理
         setTimeout(() => {
             const root = document.getElementById('root');
-            if (root.querySelector('.loading')) {
-                const loadingDiv = root.querySelector('.loading');
-                if (loadingDiv.children.length === 2) {
-                    loadingDiv.innerHTML += `
-                        <div style="margin-top: 20px; color: #f59e0b;">
-                            ⏳ 仍在加载中，请耐心等待...
-                        </div>
-                    `;
-                }
+            if (root.children.length === 1 && root.children[0].className.includes('h-screen')) {
+                root.innerHTML = `
+                    <div class="h-screen w-full flex flex-col items-center justify-center bg-gray-50">
+                        <div class="loader mb-4"></div>
+                        <p class="text-gray-600 font-medium">仍在加载中，请稍候...</p>
+                        <p class="text-gray-400 text-sm mt-2">如果长时间未响应，请刷新页面</p>
+                        <button onclick="location.reload()" class="mt-4 text-indigo-600 hover:text-indigo-800 underline">
+                            刷新页面
+                        </button>
+                    </div>
+                `;
             }
-        }, 5000);
+        }, 10000);
     </script>
 </body>
 </html>
