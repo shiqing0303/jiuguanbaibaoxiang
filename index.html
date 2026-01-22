@@ -5,40 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的百宝箱 - 智能收纳</title>
     
-    <!-- 添加 Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        'sans': ['Inter', 'system-ui', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- 使用可靠的 Tailwind CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.js"></script>
     
-    <!-- 添加 Inter 字体 -->
+    <!-- 基础样式 -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        /* 自定义样式 */
         body {
-            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background-color: #f3f4f6;
         }
         
-        /* 滚动条隐藏 */
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .hide-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        /* 确保根元素占满全屏 */
+        #root, html, body {
+            height: 100%;
+            width: 100%;
         }
         
-        /* 加载动画 */
+        /* 加载动画 - 初始显示 */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f3f4f6;
+            z-index: 9999;
+            transition: opacity 0.3s ease-out;
+        }
+        
+        /* 加载完成后的隐藏状态 */
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
         .loader {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #4f46e5;
@@ -47,13 +53,14 @@
             height: 40px;
             animation: spin 1s linear infinite;
         }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
     </style>
     
-    <!-- importmap 必须在 script 之前 -->
+    <!-- importmap -->
     <script type="importmap">
     {
         "imports": {
@@ -66,65 +73,143 @@
     }
     </script>
 </head>
-<body class="bg-gray-50">
-    <div id="root">
-        <!-- 加载时的占位内容 -->
-        <div class="h-screen w-full flex flex-col items-center justify-center bg-gray-50">
-            <div class="loader mb-4"></div>
-            <p class="text-gray-600 font-medium">正在加载百宝箱...</p>
-            <p class="text-gray-400 text-sm mt-2">Silly Tavern 助手</p>
-        </div>
+<body>
+    <!-- 加载动画（独立于应用根容器） -->
+    <div id="loading">
+        <div class="loader"></div>
+        <div style="margin-top: 16px; color: #666; font-size: 16px;">正在加载百宝箱...</div>
     </div>
+    
+    <!-- 应用根容器 -->
+    <div id="root"></div>
     
     <!-- 主应用脚本 -->
     <script type="module">
         console.log('🚀 开始加载应用...');
         
+        // 全局函数：隐藏加载动画
+        window.hideLoading = function() {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.classList.add('hidden');
+                // 1秒后完全移除，释放资源
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                }, 1000);
+            }
+        };
+        
+        // 全局函数：显示加载动画
+        window.showLoading = function(message = '加载中...') {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.classList.remove('hidden');
+                loading.style.display = 'flex';
+                if (message) {
+                    const text = loading.querySelector('div:last-child');
+                    if (text) text.textContent = message;
+                }
+            }
+        };
+        
+        // 监听应用状态
+        let appLoaded = false;
+        
+        // 方法1：监听DOM变化，检测应用是否渲染
+        const observer = new MutationObserver((mutations) => {
+            if (!appLoaded) {
+                const root = document.getElementById('root');
+                // 如果root里有内容了（不是空的），就隐藏加载动画
+                if (root && root.children.length > 0) {
+                    console.log('📦 检测到应用内容已渲染');
+                    hideLoading();
+                    appLoaded = true;
+                    observer.disconnect();
+                }
+            }
+        });
+        
+        // 开始观察
+        observer.observe(document.getElementById('root'), {
+            childList: true,
+            subtree: true
+        });
+        
+        // 方法2：超时自动隐藏（备用）
+        setTimeout(() => {
+            if (!appLoaded) {
+                console.log('⏰ 超时，强制隐藏加载动画');
+                hideLoading();
+            }
+        }, 5000);
+        
         // 动态加载主模块
         import('./assets/index-CCp5FB4H.js')
             .then(() => {
-                console.log('✅ 应用加载成功');
-                // 加载成功后移除加载提示
-                const root = document.getElementById('root');
-                if (root.children.length === 1 && root.children[0].className.includes('h-screen')) {
-                    root.innerHTML = '';
-                }
+                console.log('✅ 应用脚本加载成功');
+                
+                // 应用加载后，设置标记
+                appLoaded = true;
+                
+                // 再次检查是否需要隐藏（双重保障）
+                setTimeout(() => {
+                    const root = document.getElementById('root');
+                    if (root.children.length > 0) {
+                        hideLoading();
+                    } else {
+                        // 如果还没内容，等待一下
+                        setTimeout(hideLoading, 1000);
+                    }
+                }, 500);
             })
             .catch(error => {
                 console.error('❌ 应用加载失败:', error);
+                hideLoading();
                 
                 // 显示错误信息
                 document.getElementById('root').innerHTML = `
-                    <div class="h-screen w-full flex flex-col items-center justify-center bg-gray-50 p-6">
-                        <div class="bg-red-50 border border-red-200 rounded-xl p-6 max-w-md text-center">
-                            <div class="text-red-600 text-2xl mb-3">⚠️</div>
-                            <h3 class="text-red-800 font-bold text-lg mb-2">加载失败</h3>
-                            <p class="text-red-600 mb-4">无法加载应用程序，请检查网络连接后重试。</p>
-                            <div class="text-sm text-gray-600 mb-4">
-                                <p>错误信息: ${error.message}</p>
-                            </div>
-                            <button onclick="location.reload()" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
-                                重新加载
-                            </button>
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center;">
+                        <div style="color: #dc2626; font-size: 20px; margin-bottom: 16px;">加载失败</div>
+                        <div style="color: #6b7280; margin-bottom: 20px; max-width: 400px;">
+                            错误: ${error.message}
                         </div>
-                    </div>
-                `;
-            });
-        
-        // 超时处理
-        setTimeout(() => {
-            const root = document.getElementById('root');
-            if (root.children.length === 1 && root.children[0].className.includes('h-screen')) {
-                root.innerHTML = `
-                    <div class="h-screen w-full flex flex-col items-center justify-center bg-gray-50">
-                        <div class="loader mb-4"></div>
-                        <p class="text-gray-600 font-medium">仍在加载中，请稍候...</p>
-                        <p class="text-gray-400 text-sm mt-2">如果长时间未响应，请刷新页面</p>
-                        <button onclick="location.reload()" class="mt-4 text-indigo-600 hover:text-indigo-800 underline">
+                        <button onclick="location.reload()" style="
+                            background: #4f46e5;
+                            color: white;
+                            padding: 10px 20px;
+                            border-radius: 8px;
+                            border: none;
+                            font-size: 16px;
+                            cursor: pointer;
+                        ">
                             刷新页面
                         </button>
                     </div>
                 `;
+            });
+        
+        // 如果页面卡住，提供手动隐藏按钮
+        setTimeout(() => {
+            const loading = document.getElementById('loading');
+            if (loading && !loading.classList.contains('hidden')) {
+                const existingButton = loading.querySelector('.manual-hide');
+                if (!existingButton) {
+                    const button = document.createElement('button');
+                    button.className = 'manual-hide';
+                    button.textContent = '手动隐藏';
+                    button.style.cssText = `
+                        margin-top: 20px;
+                        background: #9ca3af;
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                        border: none;
+                        font-size: 14px;
+                        cursor: pointer;
+                    `;
+                    button.onclick = hideLoading;
+                    loading.appendChild(button);
+                }
             }
         }, 10000);
     </script>
